@@ -64,7 +64,7 @@ After it has finished you should see something as per below:
      alt="terraform init"
      style="float: left; margin-right: 10px;" />
 
-### end to end tests
+### End to end tests
 
 Now if the above has worked you can go to planning stage and execute the below command
 
@@ -88,7 +88,7 @@ Once all is checked, you will be provided with the summary of what terraform is 
 
 If you choose to proceed, VM will be provisioned on vcenter, if you choose not to proceed you can cancel from here by typing n for no
 
-## Check it it worked
+## Check it worked
 
 There are few ways:
 
