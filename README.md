@@ -58,7 +58,7 @@ Once you cloned this repository and have terraform installed and in your path ru
 $ terraform init
 ```
 
-After it has finished you should see somethign as per below:
+After it has finished you should see something as per below:
 
 <img src="https://cdn-images-1.medium.com/max/1600/1*-oX97juJPdDMU12xVJ2BuA.png"
      alt="terraform init"
