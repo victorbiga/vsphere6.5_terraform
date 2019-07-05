@@ -1,4 +1,4 @@
-# Created by Earthport Linux Team 2019 with love
+# Created by Victor Biga 2019
 
 # Define our variables
 variable "user" {
