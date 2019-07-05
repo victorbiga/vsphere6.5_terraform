@@ -92,9 +92,17 @@ If you choose to proceed, VM will be provisioned on vcenter, if you choose not t
 
 There are few ways:
 
-*Login to vcenter and search for the VM
-*Ping the provisioned IP address
-*Login to vm - my recommended way
+* Login to vcenter and search for the VM
+* Ping the provisioned IP address
+* Login to vm - my recommended way
+
+## Deleting created VM
+
+In order delete the created VM, run the below:
+
+```
+$ terraform destroy
+```
 
 ## Contributing
 
