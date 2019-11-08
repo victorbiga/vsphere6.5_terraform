@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+
+# ensure we are running as root
+if [[ "$(/usr/bin/id -un)" != "root" ]];then
+  exec /usr/bin/sudo -i $0
+fi
+
+# VARIABLES
+
+DISK=/dev/sdb
+PV_DEVICE=/dev/sdb1
+VG=appdata
+LV=data
+MOUNTPOINT=/data
+
+# Check the disk device for the application filesystem exists
+/usr/bin/lsblk ${DISK}
+if [[ $? -ne 0 ]];then
+   echo "Disk ${DISK} is not available on this system. Terminating"
+   exit 1
+fi
+
+# Check that the disk has not been already partitioned with partition 1
+/usr/bin/lsblk ${PV_DEVICE}
+if [[ $? -eq 0 ]];then
+   echo "${PV_DEVICE} already exists. Terminating"
+   exit 1
+fi
+
+# Partition the disk using fdisk
+echo ',,8e,,' | /sbin/sfdisk ${DISK}
+if [[ $? -ne 0 ]];then
+   echo "Failed to partition ${DISK} with fdisk. Terminating"
+   exit 1
+fi
+echo "Disk ${DISK} partioned with fdisk"
+
+# alternative method of partitioning disk using parted (disabled)
+# parted -s ${DISK} mklabel GPT mkpart primary "1 -1" set 1 lvm on
+#if [[ $? -ne 0 ]];then
+#   echo "Failed to partition ${DISK} with parted. Terminating"
+#   exit 1
+#fi
+#echo "Disk ${DISK} partioned with parted"
+
+# Get the OS to re-read the partition table
+/sbin/partprobe
+
+# Create the LVM physical volume
+/sbin/pvcreate ${PV_DEVICE}
+if [[ $? -ne 0 ]];then
+   echo "pvcreate failed on ${PV_DEVICE}. Terminating"
+   exit 1
+fi
+echo "LVM physical volume created on ${PV_DEVICE}"
+
+# Create the LVM volume group
+/sbin/vgcreate ${VG} ${PV_DEVICE}
+if [[ $? -ne 0 ]];then
+   echo "vgcreate failed for ${VG}. Terminating"
+   exit 1
+fi
+echo "Volume group ${VG} created"
+
+# Create the LVM logical volume
+/sbin/lvcreate -n ${LV} -l +100%FREE ${VG}
+if [[ $? -ne 0 ]];then
+   echo "lvcreate failed for /dev/${VG}/${LV}. Terminating"
+   exit 1
+fi
+echo "Logical volume created for /dev/${VG}/${LV}"
+
+# Create the file system
+/sbin/mkfs.ext4 -m 1 /dev/${VG}/${LV}
+if [[ $? -ne 0 ]];then
+   echo "mkfs failed on /dev/${VG}/${LV}. Terminating"
+   exit 1
+fi
+echo "File system created on /dev/${VG}/${LV}"
+
+#  Create the mount point
+[[ -d ${MOUNTPOINT} ]] || mkdir -p ${MOUNTPOINT}
+if [[ $? -ne 0 ]];then
+   echo "Failed to create mountpoint ${MOUNTPOINT}. Terminating"
+   exit 1
+fi
+echo " Mountpoint ${MOUNTPOINT} created"
+
+# Back up /etc/fstab
+cp /etc/fstab /etc/fstab.ORIG
+if [[ $? -ne 0 ]];then
+   echo "Failed to back up /etc/fstab. Terminating"
+   exit 1
+fi
+echo "/etc/fstab backed up to /etc/fstab.ORIG"
+
+# Add entries for new file system to /etc/fstab
+if ! egrep -q "^/dev/${VG}/${LV}[[:space:]]${MOUNTPOINT}" /etc/fstab; then
+  echo "/dev/${VG}/${LV} ${MOUNTPOINT} ext4 defaults,noatime 1 2" >> /etc/fstab
+  if [[ $? -ne 0 ]];then
+     echo "Failed to add file system entries to /etc/fstab. Terminating"
+     exit 1
+  fi
+fi
+echo "File system entries added to /etc/fstab"
+
+# Mount the file system
+mount ${MOUNTPOINT}
+if [[ $? -ne 0 ]];then
+   echo "Failed to mount ${MOUNTPOINT}. Terminating"
+   exit 1
+fi
+echo "${MOUNTPOINT} mounted"
+echo "SUCCESS - ${MOUNTPOINT} file system created"
+exit 0
